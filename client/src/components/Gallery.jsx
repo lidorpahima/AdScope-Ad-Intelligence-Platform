@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import GalleryItem from './GalleryItem'
+import CompanyModal from './CompanyModal'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 const Gallery = () => {
   const [items, setItems] = useState([])
+  const [fullCompanyData, setFullCompanyData] = useState({})
+  const [selectedCompany, setSelectedCompany] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -32,6 +35,12 @@ const Gallery = () => {
 
       if (data.success) {
         setItems(data.items)
+        // Store full company data for modal
+        const companyMap = {}
+        data.searchResults.forEach((company) => {
+          companyMap[company.page_id] = company
+        })
+        setFullCompanyData(companyMap)
       } else {
         setError('Failed to fetch results')
       }
@@ -91,9 +100,20 @@ const Gallery = () => {
       {items.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {items.map((item) => (
-            <GalleryItem key={item.id} item={item} />
+            <GalleryItem
+              key={item.id}
+              item={item}
+              onClick={() => setSelectedCompany(fullCompanyData[item.id])}
+            />
           ))}
         </div>
+      )}
+
+      {selectedCompany && (
+        <CompanyModal
+          company={selectedCompany}
+          onClose={() => setSelectedCompany(null)}
+        />
       )}
     </div>
   )

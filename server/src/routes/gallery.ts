@@ -58,6 +58,7 @@ router.get('/search', async (req: Request, res: Response) => {
     res.json({
       success: true,
       items: galleryItems,
+      searchResults: data.searchResults,
       credits_remaining: data.credits_remaining,
     });
   } catch (error: any) {

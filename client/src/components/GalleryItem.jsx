@@ -1,7 +1,8 @@
-const GalleryItem = ({ item }) => {
+const GalleryItem = ({ item, onClick }) => {
   const handleClick = () => {
-    // Future: Open modal or navigate to detail view
-    console.log('Item clicked:', item.id)
+    if (onClick) {
+      onClick()
+    }
   }
 
   return (

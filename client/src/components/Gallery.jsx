@@ -1,73 +1,102 @@
-import { useState } from "react";
-import GalleryItem from "./GalleryItem";
+import { useState } from 'react'
+import GalleryItem from './GalleryItem'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 const Gallery = () => {
-  // Sample images - replace with your actual image URLs
-  const [items] = useState([
-    {
-      id: 1,
-      type: "image",
-      url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
-      title: "Mountain Landscape",
-    },
-    {
-      id: 2,
-      type: "image",
-      url: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800",
-      title: "Ocean View",
-    },
-    {
-      id: 3,
-      type: "image",
-      url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800",
-      title: "Forest Path",
-    },
-    {
-      id: 4,
-      type: "image",
-      url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800",
-      title: "Sunset",
-    },
-    {
-      id: 5,
-      type: "image",
-      url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800",
-      title: "Nature",
-    },
-    {
-      id: 6,
-      type: "image",
-      url: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800",
-      title: "Cityscape",
-    },
-    {
-      id: 7,
-      type: "image",
-      url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800",
-      title: "Mountain Peak",
-    },
-    {
-      id: 8,
-      type: "image",
-      url: "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800",
-      title: "Desert",
-    },
-  ]);
+  const [items, setItems] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    
+    if (!searchQuery.trim()) {
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const url = new URL(`${API_URL}/api/gallery/search`)
+      url.searchParams.append('query', searchQuery)
+      
+      const response = await fetch(url.toString())
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch results')
+      }
+
+      if (data.success) {
+        setItems(data.items)
+      } else {
+        setError('Failed to fetch results')
+      }
+    } catch (err) {
+      console.error('Search error:', err)
+      setError(err.message || 'Failed to search companies')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Gallery</h1>
-        <p className="text-gray-600">Photos and videos</p>
+        <p className="text-gray-600 mb-6">Search for companies to view their ads</p>
+        
+        <form onSubmit={handleSearch} className="max-w-md">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search for companies..."
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={loading}
+            />
+            <button
+              type="submit"
+              disabled={loading || !searchQuery.trim()}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? 'Searching...' : 'Search'}
+            </button>
+          </div>
+        </form>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {items.map((item) => (
-          <GalleryItem key={item.id} item={item} />
-        ))}
-      </div>
-    </div>
-  );
-};
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
 
-export default Gallery;
+      {items.length === 0 && !loading && (
+        <div className="text-center py-12 text-gray-500">
+          <p>No results yet. Search for a company to see their ads.</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="text-center py-12">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      )}
+
+      {items.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {items.map((item) => (
+            <GalleryItem key={item.id} item={item} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default Gallery

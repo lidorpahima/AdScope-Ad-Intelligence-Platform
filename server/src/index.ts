@@ -2,8 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./db/connection";
-import { searchCompanies } from "./routes/gallery";
-import { console } from "inspector";
+import { adsRouter } from "./routes/ads";
 
 dotenv.config();
 
@@ -20,7 +19,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.use("/api/gallery", searchCompanies);
+app.use("/api/ads", adsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

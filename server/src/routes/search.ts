@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import axios from "axios";
-import { CompanySearch } from "../models/CompanySearch";
+import { AdSearch } from "../models/AdSearch";
 import { normalizeQuery } from "../utils/queryNormalizer";
 import { isMongoConnected } from "../db/connection";
 
@@ -37,7 +37,7 @@ router.get("/search", async (req: Request, res: Response) => {
     // Check cache first (only if MongoDB is connected)
     if (isMongoConnected()) {
       try {
-        const cachedResult = await CompanySearch.findOne({
+        const cachedResult = await AdSearch.findOne({
           normalizedQuery,
         });
 
@@ -45,12 +45,21 @@ router.get("/search", async (req: Request, res: Response) => {
           console.log(
             `Cache hit for query: "${query}" (normalized: "${normalizedQuery}")`,
           );
-          return res.json({
-            success: true,
-            items: cachedResult.items,
-            searchResults: cachedResult.searchResults,
-            cached: true,
-          });
+
+          // Ensure we have valid data
+          if (!cachedResult.ads || !cachedResult.search_information) {
+            console.warn("Cache data incomplete, fetching from API");
+            // Fall through to API call
+          } else {
+            return res.json({
+              success: true,
+              ads: cachedResult.ads,
+              search_information: cachedResult.search_information,
+              pagination: cachedResult.pagination,
+              ad_library_page_info: cachedResult.ad_library_page_info,
+              cached: true,
+            });
+          }
         }
       } catch (cacheError) {
         console.warn("Cache read error, continuing with API call:", cacheError);
@@ -62,13 +71,13 @@ router.get("/search", async (req: Request, res: Response) => {
       `Cache miss for query: "${query}" (normalized: "${normalizedQuery}")`,
     );
 
-    const apiKey = process.env.SCRAPECREATORS_API_KEY;
+    const apiKey = process.env.SEARCHAPI_KEY;
     if (!apiKey) {
       return res.status(500).json({ error: "API key not configured" });
     }
 
     const response = await axios.get(
-      `https://api.scrapecreators.com/v1/facebook/adLibrary/search/companies?query=${encodeURIComponent(query)}`,
+      `https://www.searchapi.io/api/v1/search?engine=meta_ad_library&api_key=${apiKey}&q=${encodeURIComponent(query)}`,
       {
         headers: { "x-api-key": apiKey },
       },
@@ -76,27 +85,24 @@ router.get("/search", async (req: Request, res: Response) => {
 
     const data = response.data;
 
-    if (!data.success || !data.searchResults) {
+    if (!data.ads) {
       return res.status(500).json({ error: "Invalid API response" });
     }
 
-    const galleryItems: GalleryItem[] = data.searchResults.map(
-      (result: CompanySearchResult) => ({
-        id: result.page_id,
-        type: "image" as const,
-        url: result.image_uri,
-        title: result.name,
-      }),
-    );
+    // Log all available fields from API (for debugging)
+    if (data.ads && data.ads.length > 0) {
+      console.log("Available fields from API:", Object.keys(data.ads[0]));
+    }
 
     // Save to cache (only if MongoDB is connected)
     if (isMongoConnected()) {
       try {
-        await CompanySearch.create({
+        await AdSearch.create({
           normalizedQuery,
-          searchResults: data.searchResults,
-          items: galleryItems,
-          credits_remaining: data.credits_remaining,
+          ads: data.ads,
+          search_information: data.search_information,
+          pagination: data.pagination,
+          ad_library_page_info: data.ad_library_page_info,
         });
         console.log(`Saved to cache: "${normalizedQuery}"`);
       } catch (cacheError) {
@@ -109,18 +115,19 @@ router.get("/search", async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      items: galleryItems,
-      searchResults: data.searchResults,
-      credits_remaining: data.credits_remaining,
+      ads: data.ads,
+      search_information: data.search_information,
+      pagination: data.pagination,
+      ad_library_page_info: data.ad_library_page_info,
       cached: false,
     });
   } catch (error: any) {
-    console.error("Error fetching companies:", error);
+    console.error("Error fetching ads:", error);
     res.status(500).json({
-      error: "Failed to fetch companies",
+      error: "Failed to fetch ads",
       message: error.message,
     });
   }
 });
 
-export { router as searchCompanies };
+export { router as searchAds };

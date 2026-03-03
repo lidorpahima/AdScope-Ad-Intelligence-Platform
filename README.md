@@ -1,0 +1,1 @@
+# AdScope-Ad-Intelligence-Platform

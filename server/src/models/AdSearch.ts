@@ -35,7 +35,7 @@ const AdSearchSchema = new Schema<IAdSearch>({
   },
 });
 
-// TTL index - documents will be automatically deleted after 7 days (604800 seconds)
-AdSearchSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800 });
+// TTL index - documents will be automatically deleted after 14 days
+AdSearchSchema.index({ createdAt: 1 }, { expireAfterSeconds: 1209600 });
 
 export const AdSearch = mongoose.model<IAdSearch>("AdSearch", AdSearchSchema);

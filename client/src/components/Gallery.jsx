@@ -8,6 +8,7 @@ const Gallery = () => {
   const [ads, setAds] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [pageId, setPageId] = useState("");
+  const [region, setRegion] = useState("world"); // 'world' | 'eu'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedAd, setSelectedAd] = useState(null);
@@ -31,6 +32,10 @@ const Gallery = () => {
       }
       if (pageId.trim()) {
         url.searchParams.append("page_id", pageId);
+      }
+      if (region === "eu") {
+        // Limit to an EU country to increase chance of EU reach data
+        url.searchParams.append("country", "de");
       }
 
       console.log("Fetching from:", url.toString());
@@ -66,10 +71,45 @@ const Gallery = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Ads Gallery</h1>
-        <p className="text-gray-600 mb-6">
-          Search for ads from Meta Ad Library
-        </p>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Ads Gallery
+            </h1>
+            <p className="text-gray-600">
+              Search for ads from Meta Ad Library
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+              Region
+            </span>
+            <div className="inline-flex rounded-full border border-gray-200 bg-gray-50 p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setRegion("world")}
+                className={`px-3 py-1 rounded-full transition-colors ${
+                  region === "world"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                Worldwide
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegion("eu")}
+                className={`px-3 py-1 rounded-full transition-colors ${
+                  region === "eu"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                EU only
+              </button>
+            </div>
+          </div>
+        </div>
 
         <form onSubmit={handleSearch} className="max-w-2xl">
           <div className="flex flex-col gap-3">
@@ -132,7 +172,11 @@ const Gallery = () => {
       )}
 
       {selectedAd && (
-        <AdsModal ad={selectedAd} onClose={() => setSelectedAd(null)} />
+        <AdsModal
+          ad={selectedAd}
+          region={region}
+          onClose={() => setSelectedAd(null)}
+        />
       )}
     </div>
   );
